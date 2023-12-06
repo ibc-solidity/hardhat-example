@@ -1,7 +1,8 @@
 const hre = require("hardhat");
 
 async function deploy(deployer, contractName, args = []) {
-  const contract = await hre.ethers.deployContract(contractName, args);
+  const factory = await hre.ethers.getContractFactory(contractName);
+  const contract = await factory.connect(deployer).deploy(...args);
   await contract.waitForDeployment();
   return contract;
 }
@@ -17,9 +18,9 @@ async function deployIBC(deployer) {
   const logics = [];
   for (const name of logicNames) {
     const logic = await deploy(deployer, name);
-    logics.push(logic);
+    logics.push(logic.target);
   }
-  return await deploy(deployer, "OwnableIBCHandler", logics.map(l => l.target));
+  return await deploy(deployer, "OwnableIBCHandler", logics);
 }
 
 async function main() {
@@ -33,7 +34,7 @@ async function main() {
   }
 
   // ethers is available in the global scope
-  const [deployer] = await ethers.getSigners();
+  const [deployer] = await hre.ethers.getSigners();
   console.log(
     "Deploying the contracts with the account:",
     await deployer.getAddress()
